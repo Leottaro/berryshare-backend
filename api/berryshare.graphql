@@ -1,21 +1,21 @@
 type User {
-	id: ID!
-	email: String,
-	password: String,
-	username: String,
-	admin: Boolean,
+	id: ID!,
+	email: String!,
+	password: String!, # not exposed in queries
+	username: String!,
+	admin: Boolean!
 }
 
 input CreateUserInput {
 	email: String!,
 	password: String!,
-	username: String!,
-	admin: Boolean,
+	username: String!
 }
 
 type Query {
 	allUsers: [User!]!
 	getUserById(id: Int): User
+	loginUser(email: String, password: String): User
 }
 
 type Mutation {

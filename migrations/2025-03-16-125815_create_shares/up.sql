@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS shares (
+  id INT UNSIGNED UNIQUE NOT NULL,
+  userid INT UNIQUE NOT NULL,
+  size BIGINT UNSIGNED UNIQUE NOT NULL,
+  creation DATETIME NOT NULL,
+  lifespan TIMESTAMP NOT NULL,
+  FOREIGN KEY userid_foreign (userid) REFERENCES users(id),
+  PRIMARY KEY (id)
+);

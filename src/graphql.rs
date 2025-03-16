@@ -22,6 +22,15 @@ impl QueryRoot {
     pub fn get_user_by_id(context: &GraphQLContext, id: i32) -> FieldResult<Option<User>> {
         QueryManager::get_user_by_id(context, id)
     }
+
+    #[graphql(name = "loginUser")]
+    pub fn login_user(
+        context: &GraphQLContext,
+        email: String,
+        password: String,
+    ) -> FieldResult<Option<User>> {
+        QueryManager::login_user(context, email, password)
+    }
 }
 
 // The root GraphQL mutation
@@ -35,6 +44,15 @@ impl MutationRoot {
         input: CreateUserInput,
     ) -> FieldResult<Option<User>> {
         QueryManager::create_user(context, input)
+    }
+
+    #[graphql(name = "deleteUser")]
+    pub fn delete_user(
+        context: &GraphQLContext,
+        id: i32,
+        password: String,
+    ) -> FieldResult<Option<User>> {
+        QueryManager::delete_user(context, id, password)
     }
 
     #[graphql(name = "setUserName")]

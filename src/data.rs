@@ -13,17 +13,37 @@ impl QueryManager {
     // Query
 
     pub fn all_users(context: &GraphQLContext) -> FieldResult<Vec<User>> {
-        match users.load::<User>(&mut *context.get_connection().lock().unwrap()) {
+        let res = users.load::<User>(&mut *context.get_connection().lock().unwrap());
+        match res {
             Ok(t) => Ok(t),
             Err(e) => FieldResult::Err(FieldError::from(e)),
         }
     }
 
     pub fn get_user_by_id(context: &GraphQLContext, user_id: i32) -> FieldResult<Option<User>> {
-        match users
+        let res = users
             .find(user_id)
-            .get_result::<User>(&mut *context.get_connection().lock().unwrap())
-        {
+            .get_result::<User>(&mut *context.get_connection().lock().unwrap());
+
+        match res {
+            Ok(todo) => Ok(Some(todo)),
+            Err(e) => match e {
+                diesel::result::Error::NotFound => FieldResult::Ok(None),
+                _ => FieldResult::Err(FieldError::from(e)),
+            },
+        }
+    }
+
+    pub fn login_user(
+        context: &GraphQLContext,
+        login_email: String,
+        login_password: String,
+    ) -> FieldResult<Option<User>> {
+        let res = users
+            .filter(email.eq(login_email).and(password.eq(login_password)))
+            .get_result::<User>(&mut *context.get_connection().lock().unwrap());
+
+        match res {
             Ok(todo) => Ok(Some(todo)),
             Err(e) => match e {
                 diesel::result::Error::NotFound => FieldResult::Ok(None),
@@ -42,7 +62,6 @@ impl QueryManager {
             email: &new_user.email,
             password: &new_user.password,
             username: &new_user.username,
-            admin: new_user.admin.unwrap_or(false),
         };
 
         let res = diesel::insert_into(users::table)
@@ -59,6 +78,29 @@ impl QueryManager {
                 FieldResult::Ok(created_user)
             }
             Err(e) => FieldResult::Err(FieldError::from(e)),
+        }
+    }
+
+    pub fn delete_user(
+        context: &GraphQLContext,
+        user_id: i32,
+        user_password: String,
+    ) -> FieldResult<Option<User>> {
+        let deleted_user = users
+            .find(user_id)
+            .filter(password.eq(user_password))
+            .get_result::<User>(&mut *context.get_connection().lock().unwrap());
+
+        match deleted_user {
+            Ok(user) => {
+                diesel::delete(users.find(user_id))
+                    .execute(&mut *context.get_connection().lock().unwrap())?;
+                FieldResult::Ok(Some(user))
+            }
+            Err(e) => match e {
+                diesel::result::Error::NotFound => FieldResult::Ok(None),
+                _ => FieldResult::Err(FieldError::from(e)),
+            },
         }
     }
 
