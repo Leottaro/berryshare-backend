@@ -1,9 +1,14 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    todos (id) {
-        id -> Int4,
-        task -> Varchar,
-        done -> Bool,
+    users (id) {
+        id -> Integer,
+        #[max_length = 255]
+        email -> Varchar,
+        #[max_length = 32]
+        password -> Varchar,
+        #[max_length = 255]
+        username -> Varchar,
+        admin -> Bool,
     }
 }

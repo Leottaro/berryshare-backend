@@ -1,0 +1,30 @@
+type User {
+	id: ID!
+	email: String,
+	password: String,
+	username: String,
+	admin: Boolean,
+}
+
+input CreateUserInput {
+	email: String!,
+	password: String!,
+	username: String!,
+	admin: Boolean,
+}
+
+type Query {
+	allUsers: [User!]!
+	getUserById(id: Int): User
+}
+
+type Mutation {
+	createUser(input: CreateUserInput): User
+	setUserName(id: Int, username: String): User
+	setUserPassword(id: Int, password: String): User
+}
+
+schema {
+	Query
+	Mutation
+}
