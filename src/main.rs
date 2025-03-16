@@ -1,42 +1,34 @@
-extern crate actix_rt;
-extern crate actix_web;
-extern crate berryshare_backend;
-extern crate diesel;
-extern crate dotenv;
-extern crate env_logger;
-extern crate juniper;
-extern crate r2d2;
+//! Actix Web juniper example
+//!
+//! A simple example integrating juniper in Actix Web
 
-use std::{env, io};
+use std::{io, sync::Arc};
 
-use actix_web::{App, HttpServer, middleware};
+use actix_cors::Cors;
+use actix_web::{App, HttpServer, middleware, web::Data};
+use berryshare_backend::{endpoints, graphql::create_schema};
 
-use berryshare_backend::db::get_pool;
-use berryshare_backend::endpoints::graphql_endpoints;
-
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> io::Result<()> {
-    logging_setup();
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    // Instantiate a new connection pool
-    let pool = get_pool();
+    // Create Juniper schema
+    let schema = Arc::new(create_schema());
+    log::info!("starting HTTP server on port 8080");
+    log::info!("GraphiQL playground: http://localhost:8080/graphiql");
 
-    // Start up the server, passing in (a) the connection pool
-    // to make it available to all endpoints and (b) the configuration
-    // function that adds the /graphql logic.
+    // Start HTTP server
     HttpServer::new(move || {
         App::new()
-            .app_data(pool.clone())
+            .app_data(Data::from(schema.clone()))
+            .service(endpoints::graphql)
+            .service(endpoints::graphql_playground)
+            // the graphiql UI requires CORS to be enabled
+            .wrap(Cors::permissive())
             .wrap(middleware::Logger::default())
-            .configure(graphql_endpoints)
     })
-    .bind("127.0.0.1:4000")?
+    .workers(2)
+    .bind(("127.0.0.1", 8080))?
     .run()
     .await
-}
-
-// TODO: more fine-grained logging setup
-fn logging_setup() {
-    unsafe { env::set_var("RUST_LOG", "actix_web=info") };
-    env_logger::init();
 }

@@ -1,36 +1,31 @@
+use crate::context::GraphQLContext;
 use crate::models::{CreateUserInput, NewUser, User};
 use crate::schema::users::{self, dsl::*};
-use diesel::mysql::MysqlConnection;
 use diesel::prelude::*;
 use juniper::{FieldError, FieldResult};
 
-// This struct is basically a query manager. All the methods that it
-// provides are static, making it a convenient abstraction for interacting
-// with the database.
-pub struct Users;
+pub struct QueryManager;
 
-// Note that all the function names here map directly onto the function names
-// associated with the Query and Mutation structs. This is NOT necessary but
-// I personally prefer it.
-impl Users {
+// Every function in here should map directly to a function of the graphql schema
+// fore example	getUserById(id: Int): User
+// becomes 		get_user_by_id(context: &GraphQLContext, user_id: i32) -> FieldResult<Option<User>>
+impl QueryManager {
     // Query
 
-    pub fn all_users(connection: &mut MysqlConnection) -> FieldResult<Vec<User>> {
-        match users.load::<User>(connection) {
+    pub fn all_users(context: &GraphQLContext) -> FieldResult<Vec<User>> {
+        match users.load::<User>(&mut *context.get_connection().lock().unwrap()) {
             Ok(t) => Ok(t),
             Err(e) => FieldResult::Err(FieldError::from(e)),
         }
     }
 
-    pub fn get_user_by_id(
-        connection: &mut MysqlConnection,
-        user_id: i32,
-    ) -> FieldResult<Option<User>> {
-        match users.find(user_id).get_result::<User>(connection) {
+    pub fn get_user_by_id(context: &GraphQLContext, user_id: i32) -> FieldResult<Option<User>> {
+        match users
+            .find(user_id)
+            .get_result::<User>(&mut *context.get_connection().lock().unwrap())
+        {
             Ok(todo) => Ok(Some(todo)),
             Err(e) => match e {
-                // Without this translation, GraphQL will return an error rather
-                // than the more semantically sound JSON null if no User is found.
                 diesel::result::Error::NotFound => FieldResult::Ok(None),
                 _ => FieldResult::Err(FieldError::from(e)),
             },
@@ -40,7 +35,7 @@ impl Users {
     // Mutation
 
     pub fn create_user(
-        connection: &mut MysqlConnection,
+        context: &GraphQLContext,
         new_user: CreateUserInput,
     ) -> FieldResult<Option<User>> {
         let new_user = NewUser {
@@ -52,14 +47,14 @@ impl Users {
 
         let res = diesel::insert_into(users::table)
             .values(&new_user)
-            .execute(connection);
+            .execute(&mut *context.get_connection().lock().unwrap());
 
         match res {
             Ok(0) => FieldResult::Ok(None),
             Ok(_) => {
                 let created_user = users
                     .order(id.desc())
-                    .first::<User>(connection)
+                    .first::<User>(&mut *context.get_connection().lock().unwrap())
                     .optional()?;
                 FieldResult::Ok(created_user)
             }
@@ -68,20 +63,20 @@ impl Users {
     }
 
     pub fn set_user_name(
-        connection: &mut MysqlConnection,
+        context: &GraphQLContext,
         user_id: i32,
         new_username: String,
     ) -> FieldResult<Option<User>> {
         let res = diesel::update(users.filter(users::id.eq(user_id)))
             .set(username.eq(new_username))
-            .execute(connection);
+            .execute(&mut *context.get_connection().lock().unwrap());
 
         match res {
             Ok(0) => FieldResult::Ok(None),
             Ok(_) => {
                 let created_user = users
                     .order(id.desc())
-                    .first::<User>(connection)
+                    .first::<User>(&mut *context.get_connection().lock().unwrap())
                     .optional()?;
                 FieldResult::Ok(created_user)
             }
@@ -90,20 +85,20 @@ impl Users {
     }
 
     pub fn set_user_password(
-        connection: &mut MysqlConnection,
+        context: &GraphQLContext,
         user_id: i32,
         new_password: String,
     ) -> FieldResult<Option<User>> {
         let res = diesel::update(users.filter(id.eq(user_id)))
             .set(password.eq(new_password))
-            .execute(connection);
+            .execute(&mut *context.get_connection().lock().unwrap());
 
         match res {
             Ok(0) => FieldResult::Ok(None),
             Ok(_) => {
                 let created_user = users
                     .order(id.desc())
-                    .first::<User>(connection)
+                    .first::<User>(&mut *context.get_connection().lock().unwrap())
                     .optional()?;
                 FieldResult::Ok(created_user)
             }
