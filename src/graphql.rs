@@ -1,8 +1,8 @@
 use super::context::GraphQLContext;
 use juniper::{EmptySubscription, FieldResult, RootNode};
 
-use super::data::QueryManager;
 use super::models::{CreateUserInput, User};
+use super::query_manager::QueryManager;
 
 // The root GraphQL query
 pub struct QueryRoot;

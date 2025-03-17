@@ -1,12 +1,32 @@
-//! Actix Web juniper example
-//!
-//! A simple example integrating juniper in Actix Web
-
 use std::{io, sync::Arc};
 
 use actix_cors::Cors;
-use actix_web::{App, HttpServer, middleware, web::Data};
-use berryshare_backend::{endpoints, graphql::create_schema};
+use actix_web::{
+    App, HttpResponse, HttpServer, Responder, get, middleware, route,
+    web::{self, Data},
+};
+use berryshare_backend::{
+    context::GraphQLContext,
+    graphql::{Schema, create_schema},
+};
+use juniper::http::{GraphQLRequest, graphiql::graphiql_source};
+
+/// GraphiQL playground UI
+#[get("/graphiql")]
+async fn graphql_playground() -> impl Responder {
+    web::Html::new(graphiql_source("/graphql", None))
+}
+
+// The core handler that provides all GraphQL functionality.
+#[route("/graphql", method = "GET", method = "POST")]
+async fn graphql(st: web::Data<Schema>, data: web::Json<GraphQLRequest>) -> impl Responder {
+    dotenv::dotenv().ok();
+    let database_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|err| panic!("Couldn't get DATABASE_URL environment variable: {}", err));
+    let context = GraphQLContext::new(database_url);
+    let res = data.execute(&st, &context).await;
+    HttpResponse::Ok().json(res)
+}
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
@@ -21,8 +41,8 @@ async fn main() -> io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(Data::from(schema.clone()))
-            .service(endpoints::graphql)
-            .service(endpoints::graphql_playground)
+            .service(graphql)
+            .service(graphql_playground)
             // the graphiql UI requires CORS to be enabled
             .wrap(Cors::permissive())
             .wrap(middleware::Logger::default())

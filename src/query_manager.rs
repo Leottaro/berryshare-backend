@@ -7,8 +7,8 @@ use juniper::{FieldError, FieldResult};
 pub struct QueryManager;
 
 // Every function in here should map directly to a function of the graphql schema
-// fore example	getUserById(id: Int): User
-// becomes 		get_user_by_id(context: &GraphQLContext, user_id: i32) -> FieldResult<Option<User>>
+// fore example :	getUserById(id: Int): User
+// becomes 		:	get_user_by_id(context: &GraphQLContext, user_id: i32) -> FieldResult<Option<User>>
 impl QueryManager {
     // Query
 

@@ -2,8 +2,7 @@
 extern crate diesel;
 
 pub mod context;
-pub mod data;
-pub mod endpoints;
 pub mod graphql;
 pub mod models;
+pub mod query_manager;
 pub mod schema;
